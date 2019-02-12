@@ -1,7 +1,7 @@
 ---
 output:
-  pdf_document: deault
   html_document: default
+  pdf_document: default
 ---
 Red Wine Quality by AYSUN AKARSU
 ========================================================
@@ -18,15 +18,11 @@ Red Wine Quality by AYSUN AKARSU
 # The other parameters for "message" and "warning" should also be set to FALSE
 # for other code chunks once you have verified that each plot comes out as you
 # want it to. This will clean up the flow of your report.
-install.packages("dplyr", repos = "http://cran.us.r-project.org")
 library(dplyr)
-install.packages("tidyverse", repos = "http://cran.us.r-project.org")
 require(tidyverse)
 library(cowplot)
-install.packages("GGally", repos = "http://cran.us.r-project.org")
 library(ggplot2)
 library(GGally)
-install.packages("corrplot", repos = "http://cran.us.r-project.org")
 library(corrplot)
 options(warn=-1)
 ```
@@ -44,7 +40,7 @@ Structure of the loaded red wine quality dataset
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, PreProcess_Data}
-# Load the Data
+# Preprocess Data. Remove unnecessary fields, convert existing fields or create new fields.
 rw_df <- select(rw_df,-c(X))
 rw_df$ratings <- cut(rw_df$quality, breaks=c(0,4,6,8), labels=c("low","average","high"))
 rw_df$quality <- factor(rw_df$quality, ordered = T)
@@ -57,7 +53,7 @@ A new variable ratings is added to the dataset.
 In the dataset, there are 1599 observations and 12 features.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, PreProcess_Data_01}
-# Load the Data
+# Summary statistics for red wine quality data
 summary(rw_df)
 ```
 Above is the summary statistics of the dataset.
@@ -66,17 +62,21 @@ Above is the summary statistics of the dataset.
 ## Quality
 
 ```{r  echo=FALSE, message=FALSE, warning=FALSE, Quality}
-summary(rw_df$quality)
+#plot bar char for quality
 ggplot(data = rw_df, aes(x = quality, fill=quality))+
-  geom_bar()  + labs(title="Number of wines per quality")
+  geom_bar()  + labs(title="Number of wines per quality") +theme(legend.position="none")
 ```
+
 
 Majority of the wines are in quality 5 and 6. Very few of them have low quality between 3 and 4. There are some of them with high quality between 7 and 8. 
 
 ```{r  echo=FALSE, message=FALSE, warning=FALSE, Ratings}
+# plot bar char for new field ratings which is created from quality
 ggplot(data = rw_df, aes(x = ratings,fill=ratings))+
-  geom_bar()  + labs(title="Number of wines per ratings")
+  geom_bar()  + labs(title="Number of wines per ratings") + theme(legend.position="none")
 ```
+
+
 Majority of the wines have average quality. Very few of them have low quality. High rated wines are more than low rated but less than average rated wines.
 
 
@@ -84,12 +84,17 @@ Majority of the wines have average quality. Very few of them have low quality. H
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, Plot_Histogram}
-rw_df %>%
+# plot ditribution of 11 chemical properties of red wine data as histogram 
+rw_df_metrics <- rw_df
+colnames(rw_df_metrics) <- c("fixed acidity (g/dm^3)","volatile acidity (g/dm^3)", "citric acid (g/dm^3)", "residual sugar (g/dm^3)","chlorides (g/dm^3)","free sulfur dioxide (mg/dm^3)","total sulfur dioxide (mg/dm^3)","density (g/cm^3)","pH","sulphates (g/dm3)","alcohol (% volume)","quality","ratings" )
+
+rw_df_metrics %>%
   keep(is.numeric) %>% 
   gather() %>% 
-  ggplot(aes(value)) +
+  ggplot(aes(x=value)) +
     facet_wrap(~ key, ncol=3, scales = "free") +
-    geom_histogram() + theme_minimal() 
+    geom_histogram() + theme_minimal() +
+    theme(axis.text.x=element_text(angle=90))
 ```
 
 The distribution of the red wines chemical properties values:
@@ -103,7 +108,8 @@ Although they all are slightly right-skewed.
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, Plot_Boxplot}
-rw_df %>%
+# plot11 chemical properties of red wine data values as boxplot 
+rw_df_metrics %>%
   keep(is.numeric) %>% 
   gather() %>% 
   ggplot(aes(y=value,x=key)) +
@@ -178,8 +184,8 @@ No, I haven't done any operations on the data.
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, Corrplot}
-# Load the Data
-rw_df_corr  <- select(rw_df,-c(quality))
+# Correlation of 11 chemical properties with ratings and between each other 
+rw_df_corr  <- select(rw_df_metrics,-c(quality))
 rw_df_corr$ratings <- as.integer(rw_df_corr$ratings)
 corrplot(cor(rw_df_corr), method = "color")
 ```
@@ -188,26 +194,67 @@ Alcohol,sulphates, citric.acid, fixed.acidity, volatile.acidity have high correl
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, Bivariate_Plots01}
-rw_df_low_high <- select(rw_df,-c(quality))
-rw_df_low_high <- rw_df_low_high[rw_df_low_high$ratings %in% c("low", "high"), ]
-subsetds = subset(rw_df_low_high, select=c("residual.sugar", "chlorides", "free.sulfur.dioxide" ,"total.sulfur.dioxide","ratings"))
-GGally::ggpairs(subsetds, aes(colour = ratings, alpha = 0.5), labeller = "label_parsed") +theme(axis.text.x = element_text(angle = 90, hjust = 1)) + theme_minimal()
+# GGpairs plot of 5 variables from the dataset
+subsetds = subset(rw_df_metrics, select=c("residual sugar (g/dm^3)","chlorides (g/dm^3)","ratings"))
+GGally::ggpairs(subsetds, aes(alpha = 0.5), labeller = labeller(groupwrap = label_wrap_gen(10))) +
+theme(axis.text = element_text( size = 8 ),
+      axis.text.x = element_text(angle = 90, hjust = 1),
+      axis.title = element_text( size = 8, face = "bold" ),
+      strip.text = element_text(size = 10) )
 
 ```
 
-Residual.sugar, chlorides, free.sulfur.dioxide do not have significant importantance in determining low and high quality wines.
+The boxplots per ratings  show us that residual sugar, chlorides features alone do not determine the importantance of wine quality.
+
+There are not significant relationships between these features.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Bivariate_Plots02}
+# GGpairs plot of 5 variables from the dataset
+subsetds = subset(rw_df_metrics, select=c("free sulfur dioxide (mg/dm^3)","total sulfur dioxide (mg/dm^3)","ratings"))
+GGally::ggpairs(subsetds, aes(alpha = 0.5), labeller = labeller(groupwrap = label_wrap_gen(10))) +
+theme(axis.text = element_text( size = 8 ),
+      axis.text.x = element_text(angle = 90, hjust = 1),
+      axis.title = element_text( size = 8, face = "bold" ),
+      strip.text = element_text(size = 10) )
+
+```
+
+The boxplots per ratings  show us that free sulfur dioxide, total sulfur dioxide features alone do not determine the importantance of wine quality.
+
+There is positive correlation between free sulfur dioxode and total sulfur dioxide.
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, Bivariate_PlotsSubSet}
-subsetds = subset(rw_df_low_high, select=c("alcohol", "pH","sulphates", "density","fixed.acidity","volatile.acidity","citric.acid","ratings"))
-GGally::ggpairs(subsetds, aes(colour=ratings, alpha = 0.5), columns=1:7,labeller = "label_parsed"
-) +theme(axis.text.x = element_text(angle = 90, hjust = 1)) + theme_minimal() 
+# GGpairs plot of 7 variables from the dataset
+subsetds = subset(rw_df_metrics, select=c("alcohol (% volume)","pH","sulphates (g/dm3)", "density (g/cm^3)","ratings"))
+GGally::ggpairs(subsetds, aes(alpha = 0.5), labeller = labeller(groupwrap = label_wrap_gen(10))) +
+theme(axis.text = element_text( size = 8 ),
+      axis.text.x = element_text(angle = 90, hjust = 1),
+      axis.title = element_text( size = 8, face = "bold" ),
+      strip.text = element_text(size = 10) )  
 ```
 
 Alcohol is positively correlated with ph while it is negatively correlated with density.
-Wines with high volatile.acidity produce low quality wines.
-Density is positively correlated with fixed.acidity. 
-Fixed.acidity is positively correlated with citric.acid while negative correlated with Ph.
+
+The boxplots per ratings show us that higher alcohol values and sulphates produce high quality wines.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Bivariate_PlotsSubSet_01}
+# GGpairs plot of 7 variables from the dataset
+subsetds = subset(rw_df_metrics, select=c("fixed acidity (g/dm^3)","volatile acidity (g/dm^3)","citric acid (g/dm^3)","ratings"))
+GGally::ggpairs(subsetds, aes(alpha = 0.5), labeller = labeller(groupwrap = label_wrap_gen(10))) +
+theme(axis.text = element_text( size = 8 ),
+      axis.text.x = element_text(angle = 90, hjust = 1),
+      axis.title = element_text( size = 8, face = "bold" ),
+      strip.text = element_text(size =10 ) )  
+```
+
+
+Fixed.acidity is positively correlated with citric.acid.
+
+The boxplots per ratings show us that higher volatile acidity produce low quality wines.
+
 
 
 # Bivariate Analysis
@@ -224,7 +271,7 @@ Alcohol, pH, sulphates, density, fixed.acidity, volatile.acidity, citric.acid ar
 ### Did you observe any interesting relationships between the other features \
 (not the main feature(s) of interest)?
 
-Alcohol has  positive correlation with pH, negative correlation with density, total.sulfur.dioxide 
+Alcohol has  positive correlation with pH, negative correlation with density.
 
 PH has negative correlation with volatile.acidity
 
@@ -238,53 +285,118 @@ There are strong relationships between the quality of wine and alcohol and the a
 
 # Multivariate Plots Section
 
+```{r echo=FALSE, message=FALSE, warning=FALSE, Multivariate_Plots_GGPairs}
+# Plot ggpairs with main chemical properties affecting the wine quality per ratings low and high
+rw_df_low_high <- select(rw_df_metrics,-c(quality))
+rw_df_low_high <- rw_df_low_high[rw_df_low_high$ratings %in% c("low", "high"), ]
+# GGpairs plot of 7 variables from the dataset
+subsetds = subset(rw_df_low_high, select=c("alcohol (% volume)","pH","sulphates (g/dm3)", "density (g/cm^3)","ratings"))
+GGally::ggpairs(subsetds, aes(colour=ratings,alpha = 0.5), labeller = labeller(groupwrap = label_wrap_gen(60))) +
+theme(axis.text = element_text( size = 8 ),
+      axis.text.x = element_text(angle = 90, hjust = 1),
+      axis.title = element_text( size = 8, face = "bold" ),
+      strip.text = element_text(size = 10) )  
+```
+
+
+High quality wines have higher alcohol and sulphates however lower ph. 
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Multivariate_PlotsSubSet_01}
+# GGpairs plot of 7 variables from the dataset
+subsetds = subset(rw_df_low_high, select=c("fixed acidity (g/dm^3)","volatile acidity (g/dm^3)","citric acid (g/dm^3)","ratings"))
+GGally::ggpairs(subsetds, aes(colour=ratings, alpha = 0.5), labeller = labeller(groupwrap = label_wrap_gen(20))) +
+theme(axis.text = element_text( size = 8 ),
+      axis.text.x = element_text(angle = 90, hjust = 1),
+      axis.title = element_text( size = 8, face = "bold" ),
+      strip.text = element_text(size = 10) )  
+```
+
+
+High quality wines have higher fixed acidity and citric acid. 
+
+Fixed acidity and citric acid are positively correlated.
+
+Low quality wines have higher volatile acidity.
+
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, Multivariate_Plots_01}
-gg <- ggplot(rw_df_low_high, aes(x=alcohol, y=density)) + 
+# Multivariate plot : Density vs alcohol per ratings and per volatile acidity
+
+gg <- ggplot(rw_df, aes(x=alcohol, y=density)) + 
   geom_point(aes(col=ratings, size=volatile.acidity)) + 
  geom_smooth(aes(col=ratings), method="lm", se=F) + 
   labs(subtitle="Per ratings and per volatile acidity",
-       title="Alcohol Vs Density")
+       title="Alcohol Vs Density") +
+  xlab("alcohol (% by volume)") + ylab("density (g / cm^3)")
 
 plot(gg)
 ```
 
-Alcohol and density are negatively correlated. As the alcohol increase the wine quality increases however low density wines produce high quality wines. High volatile acidity helps us determine low quality wines.
+
+Alcohol and density are negatively correlated. 
+
+As the alcohol increase the wine quality increases however low density wines produce high quality wines. 
+
+High volatile acidity is important in determining low quality wines.
 
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, Multivariate_Plots_02}
-g <- ggplot(rw_df_low_high, aes(alcohol, sulphates)) + 
+# Multivariate plot : Alcohol Vs Sulphates per ratings and per volatile acidity
+g <- ggplot(rw_df, aes(alcohol, sulphates)) + 
   labs(subtitle="Per ratings and per volatile.acidity",
        title="Alcohol Vs Sulphates")
-
 g + geom_jitter(aes(col=ratings, size=volatile.acidity)) + 
-  geom_smooth(aes(col=ratings), method="lm", se=F)
+  geom_smooth(aes(col=ratings), method="lm", se=F) +
+  xlab("alcohol (% by volume)") + ylab("sulphates (g / dm3)")
+
 ```
 
-High quality wines have higher sulphates. Here again we see having high volatile acidity produce low quality wines.
+
+High quality wines have higher sulphates. 
+
+Having high volatile acidity produce low quality wines.
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, Multivariate_Plots_03}
-g <- ggplot(rw_df_low_high, aes(density, fixed.acidity)) + 
+# Multivariate plot : Density Vs Fixed.acidity per ratings and per volatile acidity
+g <- ggplot(rw_df, aes(density, fixed.acidity)) + 
   labs(subtitle="Per ratings and per volatile acidity",
        title="Density Vs Fixed.acidity")
 
 g + geom_jitter(aes(col=ratings, size=volatile.acidity)) + 
-  geom_smooth(aes(col=ratings), method="lm", se=F)
+  geom_smooth(aes(col=ratings), method="lm", se=F) +
+
+xlab("density (g / cm^3)") + ylab("fixed acidity (g / dm^3)")
+
 ```
 
+
+Density and fixed.acidity features are positively correlated. 
+
+Here again we see the high volatile acidity effect on low quality wines.
+
+
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE, Multivariate_Plots_04}
-g <- ggplot(rw_df_low_high, aes(fixed.acidity, citric.acid)) + 
+# Multivariate plot : Fixed.acidity Vs Citric.acid per ratings and per volatile acidity
+g <- ggplot(rw_df, aes(fixed.acidity, citric.acid)) + 
   labs(subtitle="Per ratings and per volatile acidity",
        title="Fixed.acidity Vs Citric.acid")
 
 g + geom_jitter(aes(col=ratings, size=volatile.acidity)) + 
-  geom_smooth(aes(col=ratings), method="lm", se=F)
+  geom_smooth(aes(col=ratings), method="lm", se=F) +
+  
+xlab("fixed acidity (g / dm^3)") + ylab("citric acid (g / dm^3)")
+
 ```
 
 
-Density and fixed.acidity features are positively correlated. Here again we see the high volatile acidity effect on low quality wines.
+
+Fixed acidity and citric acid features are positively correlated. 
+
+The quality of wine increases by the increase of fixed acidity and citric acidity as long as there is no high volatile acidity. 
 
 
 
@@ -311,8 +423,9 @@ strengths and limitations of your model.
 
 ### Plot One
 ```{r echo=FALSE, message=FALSE, warning=FALSE, Plot_One}
+# Plot bar for ratings
 ggplot(data = rw_df, aes(x = ratings,fill=ratings))+
-  geom_bar()  + labs(title="Number of wines per ratings")
+  geom_bar()  + labs(title="Number of wines per ratings") + theme(legend.position="none")
 ```
 
 ### Description One
@@ -322,22 +435,34 @@ Most of the red wines in the dataset have average quality. There are very few wi
 
 ### Plot Two
 ```{r echo=FALSE, message=FALSE, warning=FALSE, Plot_Two}
-subsetds = subset(rw_df_low_high, select=c("alcohol", "pH","sulphates", "density","fixed.acidity","volatile.acidity","citric.acid","ratings"))
-ggpairs(subsetds, aes(colour=ratings, alpha = 0.5) ) +theme(axis.text.x = element_text(angle = 90, hjust = 1)) + theme_minimal() 
-
+# Plot ggpairs with main chemical properties affecting the wine quality per ratings low and high
+subsetds = subset(rw_df_low_high, select=c("alcohol (% volume)","pH","sulphates (g/dm3)", "density (g/cm^3)","ratings"))
+GGally::ggpairs(subsetds, aes(colour=ratings,alpha = 0.5), labeller = labeller(groupwrap = label_wrap_gen(60))) +
+theme(axis.text = element_text( size = 8 ),
+      axis.text.x = element_text(angle = 90, hjust = 1),
+      axis.title = element_text( size = 8, face = "bold" ),
+      strip.text = element_text(size = 10) ) 
 ```
 
 ### Description Two
 
-Alcohol, pH, sulphates, density, fixed.acidity, volatile.acidity, citric.acid are the main factors which determine low or high quality wines.
+High quality wines have higher alcohol and sulphates but lower ph and lower density. 
+
+Low quality wines have higher volatile acidity.
+
+Alcohol is positively correlated with pH but negatively correlated with density.
+
+
 
 ### Plot Three
 ```{r echo=FALSE, message=FALSE, warning=FALSE, Plot_Three}
-gg <- ggplot(rw_df_low_high, aes(x=alcohol, y=density)) + 
+# Plot Alcohol Vs Density per ratings and volatile acidity
+gg <- ggplot(rw_df, aes(x=alcohol, y=density)) + 
   geom_point(aes(col=ratings, size=volatile.acidity)) + 
  geom_smooth(aes(col=ratings), method="lm", se=F) + 
   labs(subtitle="Per ratings and per volatile acidity",
-       title="Alcohol Vs Density")
+       title="Alcohol Vs Density") +
+  xlab("alcohol (% by volume)") + ylab("density (g / cm^3)")
 
 plot(gg)
 
